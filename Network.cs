@@ -197,25 +197,24 @@ namespace NeuralNetworks
         }
 
         public void ExportController()
-        {
-            string path = Environment.CurrentDirectory.ToString();
-            path = System.IO.Directory.GetParent(path).ToString();
-            path = System.IO.Directory.GetParent(path).ToString();
-            path = System.IO.Directory.GetParent(path).ToString();
+		{
+			//
+			string path = Environment.CurrentDirectory.ToString ();
+			path = System.IO.Directory.GetParent (path).ToString ();
+			path = System.IO.Directory.GetParent (path).ToString ();
+			path = System.IO.Directory.GetParent (path).ToString ();
 
-            Directory.CreateDirectory(path + "/Controller");
+			Directory.CreateDirectory (path + "/Controller");
+			string status="Saving Controller to " + path + "/Controller";
+			Console.WriteLine (status);
 
-
-            int[] networkTopology = new int[] { NumInputs, NumHidden, NumOutputs };
-            double[] networkPerformanceVars = new double[] { Fitness, MSETraining, MSEValidation };
-            DE.Export1DIntArray(networkTopology, "Controller/CnetworkTopology");
-            DE.Export1DDoubleArray(networkPerformanceVars, "Controller/CnetworkPerfVars");
-            DE.Export2DArray(WeightMat1, "Controller/CweightMat1");
-            DE.Export2DArray(WeightMat2, "Controller/CweightMat2");
-
-
-
-        }
+			int[] networkTopology = new int[] { NumInputs, NumHidden, NumOutputs };
+			double[] networkPerformanceVars = new double[] { Fitness, MSETraining, MSEValidation };
+			DE.Export1DIntArray(networkTopology, "Controller/networkTopology");
+			DE.Export1DDoubleArray(networkPerformanceVars, "Controller/networkPerfVars");
+			DE.Export2DArray(WeightMat1, "Controller/weightMat1");
+			DE.Export2DArray (WeightMat2, "Controller/weightMat2");
+		}
 
         // method to import a full network
         public void ImportNetwork()

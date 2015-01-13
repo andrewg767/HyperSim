@@ -46,27 +46,32 @@ namespace HyperModel
 
             // set simulation parameters: initial state, time steps, and desired setpoint
             NN.InitialState = NN.Outputs[0];
-            NN.SimTimeSteps = 50;
+            NN.SimTimeSteps = 100;
 
 			NN.SetPoint.Add(NN.Outputs[100]);
-            NN.SetPoint.Add(NN.Outputs[200]);
-			NN.SetPoint.Add (NN.Outputs [250]);
+           	NN.SetPoint.Add(NN.Outputs[200]);
+			//NN.SetPoint.Add (NN.Outputs [250]);
 			//NN.SetPoint.Add (NN.Outputs [150]);
+			//NN.SetPoint.Add (NN.Outputs [125]);
+			//NN.SetPoint.Add (NN.Outputs [175]);
+			//NN.SetPoint.Add (NN.Outputs [20]);
+
+
 
 
 
 
             // set neuroevolutionary parameters
             NE.NumInputs = NN.NumOutputs*2;
-            NE.NumHidden = 5;
+            NE.NumHidden = 10;
             NE.NumOutputs = 2;
             NE.WeightInitSTD = 2.0;
-            NE.PopSize = 10;
-            NE.MutateSTD = 1.5;
-            NE.NumMutationsMatrix1 = 15;
+            NE.PopSize = 25;
+            NE.MutateSTD = 1.0;
+            NE.NumMutationsMatrix1 = 25;
             NE.NumMutationsMatrix2 =5;
             NE.Domain = NN;
-            NE.Epochs = 2000;
+            NE.Epochs = 50;
 			NE.StatRuns = 1;
             NE.FitType = NeuralNetworks.FitnessType.fStatic;
 
@@ -75,7 +80,7 @@ namespace HyperModel
             DE.Export2DArray(eaData, "eaData");
 
             Controller = NE.BestNetwork;
-            //Controller.ExportNetwork();
+            Controller.ExportController();
             // pick a parameter to plot controlled var vs. desired setpoint
             int parameterOfInterest = 11;
 
