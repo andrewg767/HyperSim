@@ -386,6 +386,7 @@ namespace NeuralNetworks
                 Console.WriteLine("Beginning Statistical Run {0}", sr + 1);
                 statsData.Add(SingleEA());
                 Console.WriteLine("Statistical Run {0} Complete, Best Fitness: {1}", sr + 1, statsData[sr][Epochs - 1]);
+				BestNetwork.ExportController ();
             }
 
             //Parallel.For(0, StatRuns, sr =>

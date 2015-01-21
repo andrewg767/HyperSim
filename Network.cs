@@ -28,6 +28,7 @@ namespace NeuralNetworks
         double fitness = double.MinValue / 2.0; // fitness if we are doing neuroevolution
         double mseTraining = double.MaxValue / 2.0; // MSE if we are doing backprop
         double mseValidation = double.MaxValue / 2.0; // MSE if we are doing backprop
+		double[] stateError = new double[17];
 
         // network properties
         public int NumInputs
@@ -129,6 +130,11 @@ namespace NeuralNetworks
                 mseValidation = value;
             }
         }
+		public double[] StateError
+		{
+			get{return stateError;} 
+			set{stateError = value;}
+		}
 
         // method to create a randomly initialized weight matrix
         double[,] CreateRandomMatrix(int dim1, int dim2)
@@ -150,6 +156,7 @@ namespace NeuralNetworks
         // method to initialize network with random weights
         public void InitializeRandomNetwork()
         {
+			//StateError=new double[numInputs/2];
             WeightMat1 = CreateRandomMatrix(NumHidden, NumInputs + 1);
             WeightMat2 = CreateRandomMatrix(NumOutputs, NumHidden + 1);
         }
@@ -214,6 +221,13 @@ namespace NeuralNetworks
 			DE.Export1DDoubleArray(networkPerformanceVars, "Controller/networkPerfVars");
 			DE.Export2DArray(WeightMat1, "Controller/weightMat1");
 			DE.Export2DArray (WeightMat2, "Controller/weightMat2");
+			//DE.Export1DDoubleArray(stateError,"Controller/stateError");
+
+			Console.WriteLine ("State Errors");
+			for (int i=0; i<stateError.Length; i++) 
+			{
+				Console.WriteLine("{0}: {1}",i,stateError[i]);
+			}
 		}
 
         // method to import a full network
@@ -233,26 +247,25 @@ namespace NeuralNetworks
             WeightMat1 = importedWeightMat1;
             WeightMat2 = importedWeightMat2;
         }
+		public void ImportController()
+		{
+			int[] networkTopology = DI.Import1DIntArray("Controller/networkTopology");
+			double[] networkPerformanceVars = DI.Import1DDoubleArray("Controller/networkPerfVars");
+			double[,] importedWeightMat1 = DI.parseCSV("Controller/weightMat1");
+			double[,] importedWeightMat2 = DI.parseCSV("Controller/weightMat2");
+			NumInputs = networkTopology[0];
+			NumHidden = networkTopology[1];
+			NumOutputs = networkTopology[2];
+			Fitness = networkPerformanceVars[0];
+			MSETraining = networkPerformanceVars[1];
+			MSEValidation = networkPerformanceVars[2];
+			WeightMat1 = new double[NumHidden, NumInputs + 1];
+			WeightMat1 = importedWeightMat1;
+			WeightMat2 = importedWeightMat2;
 
-        //public void ImportController()
-        //{
-        //    string path = Environment.CurrentDirectory.ToString();
-        //    path += "/Controller/";
-        //    int[] networkTopology = DI.Import1DIntArray("networkTopology");
-        //    double[] networkPerformanceVars = DI.Import1DDoubleArray("networkPerfVars");
-        //    double[,] importedWeightMat1 = DI.parseCSV("weightMat1");
-        //    double[,] importedWeightMat2 = DI.parseCSV("weightMat2");
-        //    NumInputs = networkTopology[0];
-        //    NumHidden = networkTopology[1];
-        //    NumOutputs = networkTopology[2];
-        //    Fitness = networkPerformanceVars[0];
-        //    MSETraining = networkPerformanceVars[1];
-        //    MSEValidation = networkPerformanceVars[2];
-        //    WeightMat1 = new double[NumHidden, NumInputs + 1];
-        //    WeightMat1 = importedWeightMat1;
-        //    WeightMat2 = importedWeightMat2;
+			Console.WriteLine ("Controller imported!");
 
-        //    path = System.IO.Directory.GetParent(path).ToString();
-        //}
+		}
+
     } 
 }

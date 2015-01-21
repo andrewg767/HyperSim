@@ -35,7 +35,8 @@ namespace NeuralNetworks
         List<double[]> allUnscaledInputs;
         List<double[]> allUnscaledOutputs;
         double[] initialState;
-        int simTimeSteps = 500;
+
+        int simTimeSteps = 200;
 
         List<double[]> setPoint = new List<double[]>(); // list container for setpoint arrays
 
@@ -50,8 +51,9 @@ namespace NeuralNetworks
         int numRestarts = 10; // how many times to restart the network training (to avoid local minima)
         ToggleShuffle shuffle = ToggleShuffle.yes; // do we shuffle data sets between each episode?
         int numMSEReportingPoints = 100; // number of MSE points to report
-
-        double noiseSTD =4.0;
+		int variableOfInterest =4;
+        double noiseSTD =1.0;
+		double noisePercent = 0.01;
 
         //
 
@@ -68,6 +70,13 @@ namespace NeuralNetworks
                 DI.NumLinesToRemove = numLinesToRemove;
             }
         }
+
+		public int VariableOfInterest
+		{
+			get{return variableOfInterest;}
+			set{variableOfInterest = value;}
+		}
+
         public int NumPoints
         {
             get
@@ -294,7 +303,13 @@ namespace NeuralNetworks
             }
         }
         public double NoiseSTD 
-        { get { return noiseSTD; } set { noiseSTD = value; } }
+        { 
+			get { return noiseSTD; } set { noiseSTD = value; } }
+		public double NoisePercent 
+		{ 
+			get { return noisePercent; } 
+			set { noisePercent = value; } }
+
         public double Eta
         {
             get
@@ -482,7 +497,7 @@ namespace NeuralNetworks
 
             for (int i = 0; i < SimTimeSteps; i++)
             {
-                action = controller.ForwardPass(LA.Join(output[i],setpoint)); // Append setpoint to controller inputs
+				action = controller.ForwardPass(LA.Join(output[i],setpoint)); // Append setpoint to controller inputs
                 netInput = LA.Join(output[i], action);
                 state = NN.BestNetwork.ForwardPass(netInput);
                 output.Add(state);
@@ -510,24 +525,77 @@ namespace NeuralNetworks
 			}
 			return output;
 		}
+		public List<List<double[]>> TDSim_Noise(Network controller, List<double[]> setpoints) // todo tonight:: make output a list of two doubles
+																						// One list is actual state, one list noisy state
+																						// Publish both to csv's in Program.cs
+		{
+			SimTimeSteps = setpoints.Count;
+			List<List<double[]>> output = new List<List<double[]>>();
+			List<double[]> noisyState = new List<double[]> ();
+			List<double[]> realState = new List<double[]> ();
+			realState.Add(InitialState);
+			noisyState.Add(addSensorNoise(InitialState));
+			double[] action;
+			double[] state;
+			double[] netInput;            
 
-        public List<double[]> TDSim_Noise(Network controller)
-        {
-            List<double[]> output = new List<double[]>();
-            output.Add(InitialState);
-            double[] action;
-            double[] state;
-            double[] netInput;
+			for (int i = 0; i < SimTimeSteps; i++)
+			{
+				action = controller.ForwardPass(LA.Join(noisyState[i] , setpoints[i])); // Append setpoint to controller inputs
+				netInput = LA.Join(noisyState[i], action); 
+				state = NN.BestNetwork.ForwardPass(netInput);
+				realState.Add (state);
+				noisyState.Add(addSensorNoise(state));
+			}
+			output.Add (realState);
+			output.Add (noisyState);
+			return output;
+		}
 
-            for (int i = 0; i < SimTimeSteps; i++)
-            {
-                action = controller.ForwardPass(output[i]);
-                netInput = LA.Join(output[i], action);
-                state = NN.BestNetwork.ForwardPass(netInput);
-                output.Add(addSensorNoise(state));
-            }
-            return output;
-        }
+		public List<List<double[]>> TDSim_Act_Noise(Network controller, List<double[]> setpoints) // todo tonight:: make output a list of two doubles
+			// One list is actual state, one list noisy state
+			// Publish both to csv's in Program.cs
+		{
+			SimTimeSteps = setpoints.Count;
+			List<List<double[]>> output = new List<List<double[]>>();
+			List<double[]> noisyState = new List<double[]> ();
+			List<double[]> realState = new List<double[]> ();
+			realState.Add(InitialState);
+			noisyState.Add((InitialState));
+			double[] action;
+			double[] state;
+			double[] netInput;            
+
+			for (int i = 0; i < SimTimeSteps; i++)
+			{
+				action = addSensorNoise(controller.ForwardPass(LA.Join(noisyState[i] , setpoints[i])) ); // Append setpoint to controller inputs
+				netInput = LA.Join(noisyState[i], action); 
+				state = NN.BestNetwork.ForwardPass(netInput);
+				realState.Add (state);
+				noisyState.Add((state));
+			}
+			output.Add (realState);
+			output.Add (noisyState);
+			return output;
+		}
+
+//        public List<double[]> TDSim_Noise(Network controller,)
+//        {
+//            List<double[]> output = new List<double[]>();
+//            output.Add(InitialState);
+//            double[] action;
+//            double[] state;
+//            double[] netInput;
+//
+//            for (int i = 0; i < SimTimeSteps; i++)
+//            {
+//                action = controller.ForwardPass(output[i]);
+//                netInput = LA.Join(output[i], action);
+//                state = NN.BestNetwork.ForwardPass(netInput);
+//                output.Add(addSensorNoise(state));
+//            }
+//            return output;
+//        }
 
         //method to add noise to sensor output
         //double[] input State, output noiseyState
@@ -537,7 +605,7 @@ namespace NeuralNetworks
             double[] noiseyState = new double[temp];
             for (int i = 0; i < temp; i++)
             {
-                noiseyState[i] = state[i] + 0.001*Prob.Gaussian(NoiseSTD,0.0);
+                noiseyState[i] = state[i] + NoisePercent*Prob.Gaussian(NoiseSTD,0.0);
             }
 
             return noiseyState;
@@ -552,16 +620,28 @@ namespace NeuralNetworks
             
             for (int sp = 0; sp < SetPoint.Count; sp++) //training over several desired setpoints
             {
+			controller.StateError = new double[NumOutputs];
 
 				List<double[]> states = TDSim(controller,SetPoint[sp]);
 
                 for (int i = 0; i < SimTimeSteps; i++)
                 {
-                    for (int j = 0; j < NumOutputs; j++)
-                    {
-						double tempError = (states [i] [j] - SetPoint [sp] [j]);
-                        output += Math.Exp(tempError);
-                    }
+
+
+					double tempError = (states [i] [variableOfInterest] - SetPoint [sp] [variableOfInterest]);
+					//Console.WriteLine (tempError);
+					//controller.StateError[4] += tempError;// keeps track of sum error for each state
+					//Console.WriteLine (conroller.StateError [j]);
+					output += Math.Pow(tempError,2);
+
+//					for (int j = 0; j < SetPoint[0].Length; j++)
+//                    {
+//						double tempError = (states [i] [j] - SetPoint [sp] [j]);
+//						//Console.WriteLine (tempError);
+//						controller.StateError[j] += tempError;// keeps track of sum error for each state
+//						//Console.WriteLine (controller.StateError [j]);
+//                        output += Math.Exp(tempError);
+////                    }
                 }
             }
             output = 1.0 / (1.0 + output);
